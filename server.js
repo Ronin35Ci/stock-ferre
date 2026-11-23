@@ -2,12 +2,16 @@ const express = require('express');
 const db = require('./db');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+    res.redirect('/inicio.html');
+});
 
 app.get('/api/productos', (req, res) => {
     const query = 'SELECT * FROM productos';
@@ -250,5 +254,5 @@ app.put('/api/productos/ajustar-stock', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
