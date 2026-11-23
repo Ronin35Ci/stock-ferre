@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Ferre - Panel de Vendedor</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="icon" type="image/png" href="img/logo-stockferre.png">
+</head>
+<body>
+
+    <div class="dashboard-layout">
+        
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="img/logo-stockferre.png" alt="Stock Ferre Logo">
+            </div>
+            <nav>
+                <a href="panel-vendedor.html" class="active">🛒 Mesón de Ventas</a>
+                <a href="documentos.html">📄 Boletas y Facturas</a>
+                <a href="inicio.html" class="logout">Cerrar Sesión</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Mesón de Transacciones y Ventas</h1>
+                <span class="user-role vendedor-role-text">Rol: Vendedor (Operador)</span>
+            </header>
+
+            <section class="table-container form-section-margin">
+                <div class="table-header">
+                    <h2>Registro de Nueva Salida / Venta</h2>
+                    <span class="subtitle-muted">Emisión de documentos tributarios simulados</span>
+                </div>
+
+                <form id="formTransaccionVendedor" class="movimiento-form">
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="tipoDocumento">Tipo de Documento:</label>
+                            <select id="tipoDocumento" class="form-input">
+                                <option value="Boleta">Boleta Electrónica (Público General)</option>
+                                <option value="Factura">Factura Electrónica (Empresas)</option>
+                            </select>
+                        </div>
+                        <div class="form-col" id="contenedorRut">
+                            <label for="selectEmpresa">Seleccionar Empresa Cliente (RUT):</label>
+                            <select id="selectEmpresa" class="form-input">
+                                <option value="">-- Seleccione Empresa --</option>
+                                <option value="76.123.456-7">76.123.456-7 - Constructora del Maipo Ltda.</option>
+                                <option value="78.987.654-3">78.987.654-3 - Servicios y Obras Sur SpA</option>
+                                <option value="79.456.123-K">79.456.123-K - Ferretería y Contratistas Hermanos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col flex-grow-2">
+                            <label for="skuTransaccion">Código SKU del Producto:</label>
+                            <input type="text" id="skuTransaccion" required placeholder="Ej: FER-010" class="form-input">
+                        </div>
+                        <div class="form-col">
+                            <label for="cantTransaccion">Cantidad:</label>
+                            <input type="number" id="cantTransaccion" required min="1" value="1" class="form-input">
+                        </div>
+                        <div class="form-col">
+                            <label for="tipoMovimiento">Motivo:</label>
+                            <select id="tipoMovimiento" class="form-input">
+                                <option value="Venta">Venta en Mesón</option>
+                                <option value="Merma">Merma / Pérdida</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-registrar">💾 Registrar y Generar Comprobante</button>
+                </form>
+            </section>
+
+            <section class="table-container section-history-margin">
+                <div class="table-header">
+                    <h2>Consulta Rápida de Stock Disponible y Solicitud</h2>
+                    <input type="text" id="buscadorVendedor" placeholder="🔍 Buscar producto en stock..." class="search-input-vendedor">
+                </div>
+                
+                <div class="table-responsive">
+                    <table id="tablaVendedorStock">
+                        <thead>
+                            <tr>
+                                <th>SKU / Código</th>
+                                <th>Nombre del Producto</th>
+                                <th>Categoría</th>
+                                <th>Precio Venta</th>
+                                <th>Stock Disponible</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoTablaVendedor">
+                            <tr>
+                                <td>FER-001</td>
+                                <td>Tornillo Terrajado 2" (Caja 100u)</td>
+                                <td>Ferretería General</td>
+                                <td>$4.590</td>
+                                <td>150 u.</td>
+                                <td><button class="btn-pedir-reposicion" onclick="solicitarReposicionVendedor('FER-001', 'Tornillo Terrajado 2')">📢 Pedir Reposición</button></td>
+                            </tr>
+                            <tr>
+                                <td>FER-002</td>
+                                <td>Adhesivo Epóxico Poxipol 10min</td>
+                                <td>Adhesivos</td>
+                                <td>$2.890</td>
+                                <td>4 u.</td>
+                                <td><button class="btn-pedir-reposicion" onclick="solicitarReposicionVendedor('FER-002', 'Adhesivo Epóxico Poxipol 10min')">📢 Pedir Reposición</button></td>
+                            </tr>
+                            <tr>
+                                <td>FER-003</td>
+                                <td>Disco de Corte Metal 7 pulgadas</td>
+                                <td>Herramientas / Consumibles</td>
+                                <td>$1.990</td>
+                                <td>45 u.</td>
+                                <td><button class="btn-pedir-reposicion" onclick="solicitarReposicionVendedor('FER-003', 'Disco de Corte Metal 7 pulgadas')">📢 Pedir Reposición</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let catalogoVendedor = [];
+
+        const tipoDocumento = document.getElementById('tipoDocumento');
+        const contenedorRut = document.getElementById('contenedorRut');
+
+        tipoDocumento.addEventListener('change', function() {
+            if (this.value === 'Factura') {
+                contenedorRut.style.display = 'block';
+            } else {
+                contenedorRut.style.display = 'none';
+            }
+        });
+        
+        contenedorRut.style.display = 'none';
+
+        async function cargarStockVendedor() {
+            const cuerpo = document.getElementById('cuerpoTablaVendedor');
+            try {
+                const resp = await fetch('/api/productos');
+                if (!resp.ok) return;
+                const productos = await resp.json();
+                if (!Array.isArray(productos) || productos.length === 0) return;
+
+                catalogoVendedor = productos;
+                cuerpo.innerHTML = '';
+                productos.forEach(prod => {
+                    const fila = document.createElement('tr');
+                    const nombreEscapado = String(prod.nombre_producto || '').replace(/'/g, "\\'");
+                    fila.innerHTML = `
+                        <td>${prod.sku}</td>
+                        <td>${prod.nombre_producto}</td>
+                        <td>${prod.categoria}</td>
+                        <td>$${Number(prod.precio_venta).toLocaleString('es-CL')}</td>
+                        <td>${prod.stock_actual} u.</td>
+                        <td><button class="btn-pedir-reposicion" onclick="solicitarReposicionVendedor('${prod.sku}', '${nombreEscapado}')">📢 Pedir Reposición</button></td>
+                    `;
+                    cuerpo.appendChild(fila);
+                });
+            } catch (error) {
+                console.error("Error al cargar stock para vendedor:", error);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', cargarStockVendedor);
+
+        function obtenerPrecioUnitario(sku) {
+            const prod = catalogoVendedor.find(p => String(p.sku || '').trim().toUpperCase() === sku);
+            if (prod && Number(prod.precio_venta) > 0) {
+                return Number(prod.precio_venta);
+            }
+
+            const filas = document.querySelectorAll('#tablaVendedorStock tbody tr');
+            for (const fila of filas) {
+                const celdas = fila.getElementsByTagName('td');
+                if (celdas.length >= 4 && celdas[0].textContent.trim().toUpperCase() === sku) {
+                    const limpio = celdas[3].textContent.replace(/[^\d]/g, '');
+                    return parseInt(limpio, 10) || 0;
+                }
+            }
+            return 0;
+        }
+
+        const formTransaccion = document.getElementById('formTransaccionVendedor');
+        formTransaccion.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const sku = document.getElementById('skuTransaccion').value.trim().toUpperCase();
+            const cantidad = parseInt(document.getElementById('cantTransaccion').value, 10) || 1;
+            const tipoMov = document.getElementById('tipoMovimiento').value;
+            const tipoDoc = tipoDocumento.value;
+            const selectEmpresa = document.getElementById('selectEmpresa');
+            const empresaSeleccionada = selectEmpresa.value;
+            const textoEmpresa = selectEmpresa.options[selectEmpresa.selectedIndex]?.text || '';
+
+            try {
+                await fetch('/api/productos/ajustar-stock', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sku: sku,
+                        cantidad: cantidad,
+                        operacion: 'restar'
+                    })
+                });
+            } catch (error) {
+                console.error("Error al descontar stock en servidor:", error);
+            }
+
+            const fechaHora = new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            let detalleTexto = tipoDoc === 'Factura'
+                ? `Factura Electrónica (RUT: ${empresaSeleccionada || 'N/A'})`
+                : 'Boleta Electrónica (Público General)';
+            if (tipoMov === 'Merma') detalleTexto = 'Registro de Merma / Producto Dañado';
+
+            const nuevoMovimiento = {
+                fecha: fechaHora,
+                operador: "VENDEDOR1",
+                tipo: tipoMov === 'Venta' ? 'Venta / Salida' : 'Merma',
+                sku: sku,
+                cantidad: "-" + cantidad,
+                detalle: detalleTexto
+            };
+
+            let movimientosKardex = JSON.parse(localStorage.getItem('kardexMovimientos')) || [];
+            movimientosKardex.push(nuevoMovimiento);
+            localStorage.setItem('kardexMovimientos', JSON.stringify(movimientosKardex));
+
+            if (tipoMov === 'Venta') {
+                const prefijo = tipoDoc === 'Factura' ? 'FAC' : 'BOL';
+                const folioRandom = String(Math.floor(10000 + Math.random() * 90000));
+                const destinatario = tipoDoc === 'Factura'
+                    ? (textoEmpresa && empresaSeleccionada ? textoEmpresa : `Empresa RUT ${empresaSeleccionada || 'N/A'}`)
+                    : 'Público General';
+                const montoTotal = obtenerPrecioUnitario(sku) * cantidad;
+
+                let documentosEmitidos = JSON.parse(localStorage.getItem('documentosEmitidos')) || [];
+                documentosEmitidos.push({
+                    tipo: tipoDoc,
+                    folio: `${prefijo}-${folioRandom}`,
+                    fecha: fechaHora,
+                    destinatario: destinatario,
+                    sku: sku,
+                    cantidad: cantidad,
+                    montoTotal: montoTotal
+                });
+                localStorage.setItem('documentosEmitidos', JSON.stringify(documentosEmitidos));
+            }
+
+            alert(`¡Transacción registrada con éxito!\nDocumento: ${tipoDoc}\nSKU: ${sku} (Cant: -${cantidad})`);
+            formTransaccion.reset();
+            contenedorRut.style.display = 'none';
+            await cargarStockVendedor();
+        });
+
+        function solicitarReposicionVendedor(sku, nombre) {
+            const cantidadSugerida = prompt(`¿Cuántas unidades de [${sku}] ${nombre} deseas solicitar al Administrador?`, "20");
+            
+            if (cantidadSugerida && !isNaN(cantidadSugerida) && cantidadSugerida > 0) {
+                const skuMayus = sku.trim().toUpperCase();
+                const nuevaSolicitud = {
+                    sku: skuMayus,
+                    nombreProducto: nombre,
+                    categoria: "Solicitud desde Mesón",
+                    stockActual: "Reportado bajo por Vendedor",
+                    stockMinimo: "N/A",
+                    origen: "Vendedor (VENDEDOR1)",
+                    cantidadSugerida: cantidadSugerida,
+                    fecha: new Date().toLocaleDateString()
+                };
+
+                let solicitudesVendedor = JSON.parse(localStorage.getItem('solicitudesReposicionAdmin')) || [];
+                const indiceExistente = solicitudesVendedor.findIndex(
+                    s => String(s.sku || '').trim().toUpperCase() === skuMayus
+                );
+
+                if (indiceExistente !== -1) {
+                    solicitudesVendedor[indiceExistente] = nuevaSolicitud;
+                } else {
+                    solicitudesVendedor.push(nuevaSolicitud);
+                }
+                localStorage.setItem('solicitudesReposicionAdmin', JSON.stringify(solicitudesVendedor));
+
+                let solicitados = JSON.parse(localStorage.getItem('skusSolicitadosOC')) || [];
+                solicitados = solicitados.filter(item => item !== skuMayus);
+                localStorage.setItem('skusSolicitadosOC', JSON.stringify(solicitados));
+
+                alert(`¡Solicitud enviada con éxito al Administrador!\nProducto: ${skuMayus}\nCantidad sugerida: ${cantidadSugerida} u.`);
+            }
+        }
+
+        const buscadorVendedor = document.getElementById('buscadorVendedor');
+        buscadorVendedor.addEventListener('input', function() {
+            const filtro = buscadorVendedor.value.toLowerCase();
+            const filas = document.querySelectorAll('#tablaVendedorStock tbody tr');
+
+            filas.forEach(fila => {
+                const textoFila = fila.textContent.toLowerCase();
+                if (textoFila.includes(filtro)) {
+                    fila.style.display = '';
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

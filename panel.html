@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Ferre - Panel de Control</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="icon" type="image/png" href="img/logo-stockferre.png">
+</head>
+<body>
+
+    <div class="dashboard-layout">
+        
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="img/logo-stockferre.png" alt="Stock Ferre Logo">
+            </div>
+            <nav>
+                <a href="panel.html" class="active">📦 Inventario</a>
+                <a href="entradas-stock.html">🛒 Entradas de Stock</a>
+                <a href="alertas.html">⚠️ Alertas de Stock</a>
+                <a href="ordenes-compra.html">📋 Órdenes de Compra</a>
+                <a href="inicio.html" class="logout">Cerrar Sesión</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Control de Inventario</h1>
+                <span class="user-role">Rol: Administrador</span>
+            </header>
+
+            <section class="cards-container">
+                <div class="card">
+                    <h3>Total Productos</h3>
+                    <p class="card-number" id="kpiTotalProductos">0</p>
+                </div>
+                <div class="card alert">
+                    <h3>Stock Crítico</h3>
+                    <p class="card-number" id="kpiStockCritico">0</p>
+                </div>
+                <div class="card">
+                    <h3>Valorización Stock</h3>
+                    <p class="card-number" id="kpiValorizacionStock">$0</p>
+                </div>
+                <div class="card card-warning-risk">
+                    <h3>Riesgo de Quiebre</h3>
+                    <p class="card-number risk-text" id="kpiRiesgoQuiebre">0 Prod. (Próx. 48 hrs)</p>
+                </div>
+            </section>
+
+            <section class="table-container">
+                <div class="table-header">
+                    <h2>Listado de Existencias</h2>
+                    
+                    <div class="search-box">
+                        <input type="text" id="inputEscaner" placeholder="🔍 Escanee SKU o escriba código (Ej: FER-001)...">
+                        <span id="estadoEscaner">● Lector Activo</span>
+                        <button class="btn-primary btn-export" id="btnExportarCsv">📥 Exportar Inventario</button>
+                    </div>
+
+                    <button class="btn-primary" id="btnAbrirModal">+ Nuevo Producto</button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table id="tablaInventario">
+                        <thead>
+                            <tr>
+                                <th>SKU / Código</th>
+                                <th>Nombre del Producto</th>
+                                <th>Categoría</th>
+                                <th>Precio Venta</th>
+                                <th>Stock Actual</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoTablaInventario">
+                            <tr>
+                                <td>FER-001</td>
+                                <td>Tornillo Terrajado 2" (Caja 100u)</td>
+                                <td>Ferretería General</td>
+                                <td>$4.590</td>
+                                <td>150</td>
+                                <td><span class="badge ok">Normal</span></td>
+                                <td><button class="btn-eliminar-fila" onclick="eliminarProducto('FER-001', this)">Eliminar</button></td>
+                            </tr>
+                            <tr>
+                                <td>FER-002</td>
+                                <td>Adhesivo Epóxico Poxipol 10min</td>
+                                <td>Adhesivos</td>
+                                <td>$2.890</td>
+                                <td>4</td>
+                                <td><span class="badge warning">Crítico</span></td>
+                                <td><button class="btn-eliminar-fila" onclick="eliminarProducto('FER-002', this)">Eliminar</button></td>
+                            </tr>
+                            <tr>
+                                <td>FER-003</td>
+                                <td>Disco de Corte Metal 7 pulgadas</td>
+                                <td>Herramientas / Consumibles</td>
+                                <td>$1.990</td>
+                                <td>45</td>
+                                <td><span class="badge ok">Normal</span></td>
+                                <td><button class="btn-eliminar-fila" onclick="eliminarProducto('FER-003', this)">Eliminar</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="table-container section-kardex">
+                <div class="table-header">
+                    <h2>Auditoría y Trazabilidad de Movimientos</h2>
+                    <span class="kardex-subtitle">Registro histórico controlado por operador en tiempo real</span>
+                </div>
+                
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha / Hora</th>
+                                <th>Operador / Responsable</th>
+                                <th>Tipo de Movimiento</th>
+                                <th>SKU</th>
+                                <th>Cantidad</th>
+                                <th>Documento / Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaAuditoriaAdmin">
+                            <tr>
+                                <td>15/10/2026 - 12:45</td>
+                                <td><strong class="text-vendedor">VENDEDOR1</strong></td>
+                                <td><span class="badge ok badge-venta">Venta / Salida</span></td>
+                                <td>FER-002</td>
+                                <td>-2</td>
+                                <td>Factura Electrónica (Constructora del Maipo)</td>
+                            </tr>
+                            <tr>
+                                <td>15/10/2026 - 10:15</td>
+                                <td><strong class="text-admin">ADMINISTRADOR</strong></td>
+                                <td><span class="badge ok">Entrada (Compra)</span></td>
+                                <td>FER-001</td>
+                                <td>+50</td>
+                                <td>Reabastecimiento Proveedor Central</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="modalProducto" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Registrar Nuevo Producto</h2>
+            <form id="formNuevoProducto">
+                <div class="form-group">
+                    <label for="modalSku">Código SKU:</label>
+                    <input type="text" id="modalSku" name="sku" required placeholder="Ej: FER-004">
+                </div>
+                <div class="form-group">
+                    <label for="modalNombre">Nombre del Producto:</label>
+                    <input type="text" id="modalNombre" name="nombre_producto" required placeholder="Ej: Taladro Percutor 600W">
+                </div>
+                <div class="form-group">
+                    <label for="modalCategoria">Categoría:</label>
+                    <input type="text" id="modalCategoria" name="categoria" required placeholder="Ej: Herramientas Eléctricas">
+                </div>
+                <div class="form-group">
+                    <label for="modalPrecio">Precio de Venta ($):</label>
+                    <input type="number" id="modalPrecio" name="precio_venta" required placeholder="Ej: 39990">
+                </div>
+                <div class="form-group">
+                    <label for="modalStock">Stock Inicial:</label>
+                    <input type="number" id="modalStock" name="stock_actual" required placeholder="Ej: 12">
+                </div>
+                <button type="submit" class="btn-primary">Guardar Producto</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let productosActivos = [];
+
+        function parsearNumeroCLP(texto) {
+            const limpio = String(texto || '').replace(/[^\d-]/g, '');
+            return parseInt(limpio, 10) || 0;
+        }
+
+        function formatearValorizacion(total) {
+            if (total >= 1000000) {
+                return `$${(total / 1000000).toFixed(1).replace('.', ',')}M`;
+            }
+            return `$${total.toLocaleString('es-CL')}`;
+        }
+
+        function actualizarIndicadoresInventario(listaProductos) {
+            const totalEl = document.getElementById('kpiTotalProductos');
+            const criticoEl = document.getElementById('kpiStockCritico');
+            const valorEl = document.getElementById('kpiValorizacionStock');
+            const riesgoEl = document.getElementById('kpiRiesgoQuiebre');
+
+            let totalProductos = 0;
+            let stockCritico = 0;
+            let valorizacionTotal = 0;
+            let riesgoQuiebre = 0;
+
+            if (Array.isArray(listaProductos) && listaProductos.length > 0) {
+                totalProductos = listaProductos.length;
+
+                listaProductos.forEach(prod => {
+                    const precio = Number(prod.precio_venta) || 0;
+                    const stock = Number(prod.stock_actual) || 0;
+                    const minimo = Number(prod.stock_minimo ?? 5);
+
+                    valorizacionTotal += precio * stock;
+
+                    if (stock <= minimo) {
+                        stockCritico++;
+                    }
+                    if (stock === 0 || stock <= minimo) {
+                        riesgoQuiebre++;
+                    }
+                });
+            } else {
+                const filas = document.querySelectorAll('#cuerpoTablaInventario tr');
+                filas.forEach(fila => {
+                    const celdas = fila.getElementsByTagName('td');
+                    if (celdas.length >= 6 && fila.style.display !== 'none') {
+                        totalProductos++;
+                        const precio = parsearNumeroCLP(celdas[3].textContent);
+                        const stock = parsearNumeroCLP(celdas[4].textContent);
+                        const estadoTexto = celdas[5].textContent.trim().toLowerCase();
+
+                        valorizacionTotal += precio * stock;
+
+                        if (estadoTexto.includes('crítico') || estadoTexto.includes('critico') || stock <= 5) {
+                            stockCritico++;
+                            riesgoQuiebre++;
+                        }
+                    }
+                });
+            }
+
+            if (totalEl) totalEl.textContent = totalProductos.toLocaleString('es-CL');
+            if (criticoEl) criticoEl.textContent = stockCritico.toLocaleString('es-CL');
+            if (valorEl) valorEl.textContent = formatearValorizacion(valorizacionTotal);
+            if (riesgoEl) riesgoEl.textContent = `${riesgoQuiebre} Prod. (Próx. 48 hrs)`;
+        }
+
+        window.addEventListener('DOMContentLoaded', async function() {
+            const cuerpoTabla = document.getElementById('cuerpoTablaInventario');
+            actualizarIndicadoresInventario(null);
+
+            try {
+                const respuesta = await fetch('/api/productos');
+                const productosDB = await respuesta.json();
+
+                if (Array.isArray(productosDB) && productosDB.length > 0) {
+                    productosActivos = productosDB;
+                    cuerpoTabla.innerHTML = '';
+
+                    productosDB.forEach(prod => {
+                        const fila = document.createElement('tr');
+                        const esCritico = Number(prod.stock_actual) <= Number(prod.stock_minimo ?? 5);
+                        const badgeHTML = esCritico 
+                            ? '<span class="badge warning">Crítico</span>' 
+                            : '<span class="badge ok">Normal</span>';
+
+                        fila.innerHTML = `
+                            <td>${prod.sku}</td>
+                            <td>${prod.nombre_producto}</td>
+                            <td>${prod.categoria}</td>
+                            <td>$${Number(prod.precio_venta).toLocaleString('es-CL')}</td>
+                            <td>${prod.stock_actual}</td>
+                            <td>${badgeHTML}</td>
+                            <td><button class="btn-eliminar-fila" onclick="eliminarProducto('${prod.sku}', this)">Eliminar</button></td>
+                        `;
+                        cuerpoTabla.appendChild(fila);
+                    });
+
+                    actualizarIndicadoresInventario(productosActivos);
+                }
+            } catch (error) {
+                console.error("Error al cargar productos desde la base de datos:", error);
+            }
+        });
+
+        const formNuevoProducto = document.getElementById('formNuevoProducto');
+        formNuevoProducto.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const sku = document.getElementById('modalSku').value.trim().toUpperCase();
+            const nombre = document.getElementById('modalNombre').value.trim();
+            const categoria = document.getElementById('modalCategoria').value.trim();
+            const precio = parseInt(document.getElementById('modalPrecio').value);
+            const stock = parseInt(document.getElementById('modalStock').value);
+
+            const productoBackend = {
+                sku: sku,
+                nombre_producto: nombre,
+                categoria: categoria,
+                precio_costo: Math.round(precio * 0.7),
+                precio_venta: precio,
+                stock_actual: stock,
+                stock_minimo: 5
+            };
+
+            let actualizadoEnServidor = false;
+            let mensajeServidor = '';
+
+            try {
+                const respuesta = await fetch('/api/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productoBackend)
+                });
+                const data = await respuesta.json();
+                actualizadoEnServidor = Boolean(data.updated);
+                mensajeServidor = data.message || '';
+            } catch (error) {
+                console.error("Error al conectar con backend:", error);
+            }
+
+            let productosGuardados = JSON.parse(localStorage.getItem('inventarioProductosAdicionales')) || [];
+            if (actualizadoEnServidor) {
+                productosGuardados = productosGuardados.map(p =>
+                    p.sku === sku ? { ...p, stock: (parseInt(p.stock, 10) || 0) + stock, nombre, categoria, precio } : p
+                );
+            } else {
+                productosGuardados.push({ sku, nombre, categoria, precio, stock });
+            }
+            localStorage.setItem('inventarioProductosAdicionales', JSON.stringify(productosGuardados));
+
+            let movimientosKardex = JSON.parse(localStorage.getItem('kardexMovimientos')) || [];
+            movimientosKardex.push({
+                fecha: new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                operador: "ADMINISTRADOR",
+                tipo: actualizadoEnServidor ? "Entrada (Reposición)" : "Entrada (Creación)",
+                sku: sku,
+                cantidad: "+" + stock,
+                detalle: actualizadoEnServidor
+                    ? `Suma de stock a producto existente: ${nombre}`
+                    : `Alta de nuevo producto: ${nombre}`
+            });
+            localStorage.setItem('kardexMovimientos', JSON.stringify(movimientosKardex));
+
+            alert(actualizadoEnServidor
+                ? (mensajeServidor || `Stock de ${sku} actualizado (+${stock}).`)
+                : `¡Producto ${sku} registrado con éxito!`);
+            document.getElementById('modalProducto').style.display = 'none';
+            formNuevoProducto.reset();
+            location.reload();
+        });
+
+        async function eliminarProducto(sku, boton) {
+            if (!confirm(`¿Estás seguro de eliminar el producto ${sku}? Se borrará de la base de datos y del sistema.`)) {
+                return;
+            }
+
+            try {
+                const respuesta = await fetch(`/api/productos/${sku}`, {
+                    method: 'DELETE'
+                });
+                const resultado = await respuesta.json();
+                if (!resultado.success) {
+                    console.warn("Aviso servidor:", resultado.message);
+                }
+            } catch (error) {
+                console.error("Error al conectar para eliminar:", error);
+            }
+
+            let productosGuardados = JSON.parse(localStorage.getItem('inventarioProductosAdicionales')) || [];
+            productosGuardados = productosGuardados.filter(p => p.sku !== sku);
+            localStorage.setItem('inventarioProductosAdicionales', JSON.stringify(productosGuardados));
+
+            productosActivos = productosActivos.filter(p => p.sku !== sku);
+
+            const fila = boton.closest('tr');
+            fila.remove();
+            actualizarIndicadoresInventario(productosActivos.length > 0 ? productosActivos : null);
+            alert(`Producto ${sku} eliminado correctamente.`);
+        }
+
+        const inputEscaner = document.getElementById('inputEscaner');
+        const estadoEscaner = document.getElementById('estadoEscaner');
+
+        inputEscaner.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const codigoLeido = inputEscaner.value.trim().toUpperCase();
+                
+                if (!codigoLeido) return;
+
+                const filas = document.querySelectorAll('#tablaInventario tbody tr');
+                let encontrado = false;
+
+                filas.forEach(fila => {
+                    const celdas = fila.getElementsByTagName('td');
+                    if (celdas.length > 0) {
+                        const skuFila = celdas[0].textContent.trim().toUpperCase();
+                        const nombreFila = celdas[1].textContent.trim().toUpperCase();
+                        
+                        if (skuFila.includes(codigoLeido) || nombreFila.includes(codigoLeido)) {
+                            fila.style.display = '';
+                            fila.style.backgroundColor = '#d4edda';
+                            setTimeout(() => { fila.style.backgroundColor = ''; }, 2500);
+                            encontrado = true;
+                        } else {
+                            fila.style.display = 'none';
+                        }
+                    }
+                });
+
+                if (encontrado) {
+                    estadoEscaner.textContent = `✔ Encontrado: ${codigoLeido}`;
+                    estadoEscaner.style.color = '#27ae60';
+                } else {
+                    alert(`El código o texto "${codigoLeido}" no se encuentra.`);
+                    estadoEscaner.textContent = `✖ No registrado`;
+                    estadoEscaner.style.color = '#e74c3c';
+                    filas.forEach(f => f.style.display = '');
+                }
+            }
+        });
+
+        inputEscaner.addEventListener('input', function() {
+            if (inputEscaner.value === '') {
+                const filas = document.querySelectorAll('#tablaInventario tbody tr');
+                filas.forEach(f => f.style.display = '');
+                estadoEscaner.textContent = '● Lector Activo';
+                estadoEscaner.style.color = '#27ae60';
+            }
+        });
+
+        const modal = document.getElementById('modalProducto');
+        const btnAbrir = document.getElementById('btnAbrirModal');
+        const spanCerrar = document.querySelector('.close');
+
+        if (btnAbrir) btnAbrir.addEventListener('click', () => modal.style.display = 'flex');
+        if (spanCerrar) spanCerrar.addEventListener('click', () => modal.style.display = 'none');
+        window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+
+        window.addEventListener('DOMContentLoaded', function() {
+            const tablaAuditoria = document.getElementById('tablaAuditoriaAdmin');
+            let movimientosKardex = JSON.parse(localStorage.getItem('kardexMovimientos')) || [];
+
+            movimientosKardex.forEach(mov => {
+                const nuevaFila = document.createElement('tr');
+                const colorResponsable = mov.operador.includes("ADMIN") ? "#27ae60" : "#2980b9";
+                
+                nuevaFila.innerHTML = `
+                    <td>${mov.fecha}</td>
+                    <td><strong style="color: ${colorResponsable};">${mov.operador}</strong></td>
+                    <td><span class="badge ok" style="background-color: #e3f2fd; color: #1976d2;">${mov.tipo}</span></td>
+                    <td>${mov.sku}</td>
+                    <td>${mov.cantidad}</td>
+                    <td>${mov.detalle}</td>
+                `;
+                tablaAuditoria.prepend(nuevaFila);
+            });
+        });
+
+        const btnExportarCsv = document.getElementById('btnExportarCsv');
+        if (btnExportarCsv) {
+            btnExportarCsv.addEventListener('click', function() {
+                const filas = document.querySelectorAll('#tablaInventario tr');
+                let csvContent = "\uFEFF";
+
+                filas.forEach(fila => {
+                    const celdas = fila.querySelectorAll('th, td');
+                    let datosFila = [];
+                    celdas.forEach(celda => {
+                        let texto = celda.innerText.replace(/"/g, '""').trim();
+                        datosFila.push(`"${texto}"`);
+                    });
+                    csvContent += datosFila.join(";") + "\r\n";
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const enlaceTemporal = document.createElement('a');
+                enlaceTemporal.setAttribute('href', url);
+                enlaceTemporal.setAttribute('download', `Inventario_StockFerre_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(enlaceTemporal);
+                enlaceTemporal.click();
+                document.body.removeChild(enlaceTemporal);
+                alert("¡Exportación completada con éxito!");
+            });
+        }
+    </script>
+</body>
+</html>

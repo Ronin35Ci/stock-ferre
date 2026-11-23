@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Ferre - Órdenes de Compra</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="icon" type="image/png" href="img/logo-stockferre.png">
+</head>
+<body>
+
+    <div class="dashboard-layout">
+        
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="img/logo-stockferre.png" alt="Stock Ferre Logo">
+            </div>
+            <nav>
+                <a href="panel.html">📦 Inventario</a>
+                <a href="entradas-stock.html">🛒 Entradas de Stock</a>
+                <a href="alertas.html">⚠️ Alertas de Stock</a>
+                <a href="ordenes-compra.html" class="active">📋 Órdenes de Compra</a>
+                <a href="inicio.html" class="logout">Cerrar Sesión</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Gestión de Órdenes de Compra (OC)</h1>
+                <span class="user-role admin-role-text">Rol: Administrador</span>
+            </header>
+
+            <section class="table-container form-section-margin">
+                <div class="table-header">
+                    <h2>Órdenes de Compra Generadas (Pendientes / Por Enviar)</h2>
+                    <span class="alerta-header-label">● Gestión de Abastecimiento</span>
+                </div>
+                
+                <div class="table-responsive">
+                    <table id="tablaOrdenesCompra">
+                        <thead>
+                            <tr>
+                                <th>N° OC</th>
+                                <th>Fecha</th>
+                                <th>SKU / Producto</th>
+                                <th>Cantidad Solicitada</th>
+                                <th>Proveedor Asignado</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoTablaOC">
+                            <tr data-oc="OC-1001">
+                                <td>OC-1001</td>
+                                <td>16/10/2026</td>
+                                <td>FER-002 (Adhesivo Poxipol)</td>
+                                <td>50 u.</td>
+                                <td>Distribuidora Químicos Sur S.A.</td>
+                                <td class="celda-estado"><span class="badge warning badge-pendiente-oc">Pendiente de Envío</span></td>
+                                <td class="celda-accion">
+                                    <button class="btn-primary btn-alerta-accion-verde" onclick="enviarOrdenOC('OC-1001', 'FER-002', 50, 'Distribuidora Químicos Sur S.A.')">📥 Enviar y Recibir Stock</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function aplicarEstadosGuardados() {
+            const estadosLocales = JSON.parse(localStorage.getItem('ocEstadosLocales')) || {};
+            const filas = document.querySelectorAll('#cuerpoTablaOC tr');
+
+            filas.forEach(fila => {
+                const numOC = (fila.getAttribute('data-oc') || fila.cells[0]?.textContent || '').trim();
+                const estadoGuardado = estadosLocales[numOC];
+                if (estadoGuardado === 'Recibida' || estadoGuardado === 'Emitida / Recibida') {
+                    const celdaEstado = fila.querySelector('.celda-estado');
+                    const celdaAccion = fila.querySelector('.celda-accion');
+                    if (celdaEstado) {
+                        celdaEstado.innerHTML = '<span class="badge ok">Recibida</span>';
+                    }
+                    if (celdaAccion) {
+                        celdaAccion.innerHTML = '<span class="badge ok">Stock Ingresado</span>';
+                    }
+                }
+            });
+        }
+
+        function renderizarOrdenes(lista) {
+            const cuerpoTabla = document.getElementById('cuerpoTablaOC');
+            lista.forEach(oc => {
+                const numeroOC = oc.numero_oc || oc.numeroOC;
+                const fecha = oc.fecha_creacion
+                    ? new Date(oc.fecha_creacion).toLocaleDateString('es-CL')
+                    : oc.fecha;
+                const sku = oc.sku;
+                const nombreProducto = oc.nombre_producto || oc.nombreProducto;
+                const cantidad = oc.cantidad_solicitada || oc.cantidad;
+                const proveedor = oc.proveedor;
+                const estado = oc.estado;
+                const yaRecibida = estado === 'Recibida' || estado === 'Emitida / Recibida';
+
+                const fila = document.createElement('tr');
+                fila.setAttribute('data-oc', numeroOC);
+                fila.innerHTML = `
+                    <td>${numeroOC}</td>
+                    <td>${fecha}</td>
+                    <td>${sku} - ${nombreProducto}</td>
+                    <td>${cantidad} u.</td>
+                    <td>${proveedor}</td>
+                    <td class="celda-estado"><span class="badge ${yaRecibida ? 'ok' : 'warning badge-pendiente-oc'}">${estado}</span></td>
+                    <td class="celda-accion">
+                        ${yaRecibida
+                            ? '<span class="badge ok">Stock Ingresado</span>'
+                            : `<button class="btn-primary btn-alerta-accion-verde" onclick="enviarOrdenOC('${numeroOC}', '${sku}', ${cantidad}, '${proveedor}')">📥 Enviar y Recibir Stock</button>`
+                        }
+                    </td>
+                `;
+                cuerpoTabla.appendChild(fila);
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', async function() {
+            let listaOC = JSON.parse(localStorage.getItem('ordenesCompraStock')) || [];
+
+            try {
+                const resp = await fetch('/api/ordenes-compra');
+                if (resp.ok) {
+                    const dataDB = await resp.json();
+                    if (Array.isArray(dataDB) && dataDB.length > 0) {
+                        const codigosDB = new Set(dataDB.map(item => item.numero_oc));
+                        const soloLocal = listaOC.filter(item => !codigosDB.has(item.numeroOC));
+                        renderizarOrdenes([...dataDB, ...soloLocal]);
+                        aplicarEstadosGuardados();
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error("Error al cargar órdenes desde servidor:", error);
+            }
+
+            renderizarOrdenes(listaOC);
+            aplicarEstadosGuardados();
+        });
+
+        async function enviarOrdenOC(numOC, sku, cantidad, proveedor) {
+            if (!confirm(`¿Confirma el envío de la Orden de Compra ${numOC} al proveedor ${proveedor}?\nEsto registrará automáticamente la recepción de ${cantidad} unidades en el inventario.`)) {
+                return;
+            }
+
+            try {
+                await fetch(`/api/ordenes-compra/${encodeURIComponent(numOC)}/recibir`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sku, cantidad: parseInt(cantidad, 10) })
+                });
+            } catch (error) {
+                console.error("Error al recibir OC en servidor:", error);
+            }
+
+            let movimientosKardex = JSON.parse(localStorage.getItem('kardexMovimientos')) || [];
+            movimientosKardex.push({
+                fecha: new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                operador: "ADMINISTRADOR",
+                tipo: "Entrada (Compra)",
+                sku: sku,
+                cantidad: "+" + cantidad,
+                detalle: `Recepción Orden de Compra ${numOC} (${proveedor})`
+            });
+            localStorage.setItem('kardexMovimientos', JSON.stringify(movimientosKardex));
+
+            let listaOC = JSON.parse(localStorage.getItem('ordenesCompraStock')) || [];
+            listaOC = listaOC.map(oc => {
+                if (oc.numeroOC === numOC) {
+                    oc.estado = "Recibida";
+                }
+                return oc;
+            });
+            localStorage.setItem('ordenesCompraStock', JSON.stringify(listaOC));
+
+            const estadosLocales = JSON.parse(localStorage.getItem('ocEstadosLocales')) || {};
+            estadosLocales[numOC] = "Recibida";
+            localStorage.setItem('ocEstadosLocales', JSON.stringify(estadosLocales));
+
+            alert(`¡Orden de Compra ${numOC} procesada con éxito!\nEl stock ha sido actualizado y registrado en la auditoría.`);
+            location.reload();
+        }
+    </script>
+</body>
+</html>

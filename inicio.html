@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Ferre - Panel inicio de Sesión</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="icon" type="image/png" href="img/logo-stockferre.png">
+</head>
+<body class="login-body">
+        
+    <div class="login-container">
+        <div class="login-card">
+            
+            <div class="login-header">
+                <img src="img/logo-stockferre.png" alt="Stock Ferre Logo" class="login-logo">
+                <p class="login-subtitle">Sistema de Gestión de Inventario</p>
+            </div>
+
+            <form id="formLogin">
+                <div class="form-group">
+                    <label for="usuario">Usuario o RUT:</label>
+                    <input type="text" id="usuario" required placeholder="Ingrese su usuario (ej: admin o vendedor1)">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" required placeholder="Ingrese su contraseña">
+                </div>
+
+                <p id="mensajeErrorLogin" class="error-message" style="display: none; color: #e74c3c; margin-bottom: 12px; font-size: 0.9rem;"></p>
+
+                <button type="submit" class="btn-primary">Ingresar al Sistema</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const formLogin = document.getElementById('formLogin');
+        const mensajeError = document.getElementById('mensajeErrorLogin');
+
+        formLogin.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const usuarioRaw = document.getElementById('usuario').value.trim();
+            const usuarioInput = usuarioRaw.toLowerCase();
+            const passwordInput = document.getElementById('password').value;
+
+            const esAdmin = usuarioInput === 'admin' || usuarioInput.includes('admin');
+            const esVendedor = usuarioInput === 'vendedor1' || usuarioInput.includes('vendedor') || usuarioInput.includes('vend');
+
+            if (esAdmin && passwordInput === 'Admin.StFerre#26') {
+                mensajeError.style.display = 'none';
+                localStorage.setItem('usuarioLogueado', usuarioInput.toUpperCase());
+                localStorage.setItem('rolActivo', 'ADMINISTRADOR');
+                window.location.href = 'panel.html';
+                return;
+            }
+
+            if (esVendedor && passwordInput === 'Vended.StFerre#26') {
+                mensajeError.style.display = 'none';
+                localStorage.setItem('usuarioLogueado', usuarioInput.toUpperCase());
+                localStorage.setItem('rolActivo', 'VENDEDOR');
+                window.location.href = 'panel-vendedor.html';
+                return;
+            }
+
+            mensajeError.textContent = 'Usuario o contraseña incorrectos. Verifique sus credenciales.';
+            mensajeError.style.display = 'block';
+        });
+    </script>
+</body>
+</html>

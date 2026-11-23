@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Ferre - Entradas de Stock</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="icon" type="image/png" href="img/logo-stockferre.png">
+</head>
+<body>
+
+    <div class="dashboard-layout">
+        
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="img/logo-stockferre.png" alt="Stock Ferre Logo">
+            </div>
+            <nav>
+                <a href="panel.html">📦 Inventario</a>
+                <a href="entradas-stock.html" class="active">🛒 Entradas de Stock</a>
+                <a href="alertas.html">⚠️ Alertas de Stock</a>
+                <a href="ordenes-compra.html">📋 Órdenes de Compra</a>
+                <a href="inicio.html" class="logout">Cerrar Sesión</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Registro Entradas de Stock</h1>
+                <span class="user-role admin-role-text">Rol: Administrador</span>
+            </header>
+
+            <section class="table-container form-section-margin">
+                <div class="table-header">
+                    <h2>Registrar Movimiento de Almacén</h2>
+                    <span class="subtitle-muted">Actualización directa en inventario y Kardex de auditoría</span>
+                </div>
+
+                <form id="formEntradaSalida" class="movimiento-form">
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="tipoMovimientoAdmin">Tipo de Movimiento:</label>
+                            <select id="tipoMovimientoAdmin" class="form-input" required>
+                                <option value="Entrada - Compra">Entrada - Compra</option>
+                                <option value="Entrada - Reabastecimiento">Entrada - Reabastecimiento</option>
+                                <option value="Salida (Ajuste/Merma)">Salida (Ajuste / Pérdida)</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label for="cantidadMovimiento">Cantidad:</label>
+                            <input type="number" id="cantidadMovimiento" required min="1" placeholder="Ej: 50" class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="skuMovimiento">Código SKU:</label>
+                            <input type="text" id="skuMovimiento" required placeholder="Ej: FER-010" class="form-input">
+                        </div>
+                        <div class="form-col">
+                            <label for="nombreProductoMovimiento">Nombre del Producto:</label>
+                            <input type="text" id="nombreProductoMovimiento" required placeholder="Ej: Alicate Universal 8 pulgadas" class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="proveedorMovimiento">Proveedor:</label>
+                            <select id="proveedorMovimiento" class="form-input" required>
+                                <option value="">Seleccione proveedor...</option>
+                                <option value="Proveedor Central Ferretero">Proveedor Central Ferretero</option>
+                                <option value="Distribuidora Bauker / Herramientas">Distribuidora Bauker / Herramientas</option>
+                                <option value="Adhesivos y Sellantes Chile S.A.">Adhesivos y Sellantes Chile S.A.</option>
+                                <option value="Aceros y Fijaciones del Sur">Aceros y Fijaciones del Sur</option>
+                                <option value="Ajuste Interno / Bodega">Ajuste Interno / Bodega</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label for="facturaMovimiento">N° de Factura / Documento:</label>
+                            <input type="text" id="facturaMovimiento" required placeholder="Ej: FAC-00458" class="form-input">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-registrar">💾 Registrar Movimiento</button>
+                </form>
+            </section>
+
+            <section class="table-container section-history-margin">
+                <div class="table-header">
+                    <h2>Historial de Movimientos Registrados</h2>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha / Hora</th>
+                                <th>Operador</th>
+                                <th>Tipo</th>
+                                <th>SKU</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Proveedor</th>
+                                <th>N° Factura</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaMovimientosLocal">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const formEntradaSalida = document.getElementById('formEntradaSalida');
+
+        async function sincronizarStockEnBD(sku, nombreProducto, cantidadNum, esEntrada) {
+            const operacion = esEntrada ? 'sumar' : 'restar';
+
+            const respAjuste = await fetch('/api/productos/ajustar-stock', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sku: sku,
+                    cantidad: cantidadNum,
+                    operacion: operacion
+                })
+            });
+
+            if (respAjuste.status === 404 && esEntrada) {
+                const respCrear = await fetch('/api/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sku: sku,
+                        nombre_producto: nombreProducto,
+                        categoria: 'General',
+                        precio_costo: 0,
+                        precio_venta: 0,
+                        stock_actual: cantidadNum,
+                        stock_minimo: 5
+                    })
+                });
+                return await respCrear.json();
+            }
+
+            return await respAjuste.json();
+        }
+
+        formEntradaSalida.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const tipo = document.getElementById('tipoMovimientoAdmin').value;
+            const sku = document.getElementById('skuMovimiento').value.trim().toUpperCase();
+            const nombreProducto = document.getElementById('nombreProductoMovimiento').value.trim();
+            const cantidadNum = parseInt(document.getElementById('cantidadMovimiento').value, 10) || 1;
+            const proveedor = document.getElementById('proveedorMovimiento').value;
+            const factura = document.getElementById('facturaMovimiento').value.trim().toUpperCase();
+
+            const esEntrada = tipo.includes('Entrada');
+            const signoCantidad = esEntrada ? `+${cantidadNum}` : `-${cantidadNum}`;
+
+            let resultadoBD = null;
+            try {
+                resultadoBD = await sincronizarStockEnBD(sku, nombreProducto, cantidadNum, esEntrada);
+            } catch (error) {
+                console.error("Error al sincronizar movimiento con MySQL:", error);
+            }
+
+            const nuevoMovimiento = {
+                fecha: new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                operador: "ADMINISTRADOR",
+                tipo: tipo,
+                sku: sku,
+                nombreProducto: nombreProducto,
+                cantidad: signoCantidad,
+                proveedor: proveedor,
+                factura: factura,
+                detalle: `${nombreProducto} | Prov: ${proveedor} | Doc: ${factura}`
+            };
+
+            let movimientosKardex = JSON.parse(localStorage.getItem('kardexMovimientos')) || [];
+            movimientosKardex.push(nuevoMovimiento);
+            localStorage.setItem('kardexMovimientos', JSON.stringify(movimientosKardex));
+
+            const mensajeStock = resultadoBD && typeof resultadoBD.stock_actual !== 'undefined'
+                ? `\nStock actual en inventario: ${resultadoBD.stock_actual} u.`
+                : '';
+
+            alert(`¡Movimiento registrado con éxito!\nProducto: ${sku} - ${nombreProducto} (${signoCantidad} u.)\nProveedor: ${proveedor} | Factura: ${factura}${mensajeStock}`);
+            formEntradaSalida.reset();
+            cargarTablaMovimientos();
+        });
+
+        function cargarTablaMovimientos() {
+            const tabla = document.getElementById('tablaMovimientosLocal');
+            tabla.innerHTML = '';
+            let movimientosKardex = JSON.parse(localStorage.getItem('kardexMovimientos')) || [];
+
+            movimientosKardex.slice().reverse().forEach(mov => {
+                const fila = document.createElement('tr');
+                const claseBadgeMov = mov.tipo.includes('Entrada') ? 'badge-entrada-ok' : 'badge-salida-alerta';
+                
+                fila.innerHTML = `
+                    <td>${mov.fecha}</td>
+                    <td><strong class="text-admin">${mov.operador}</strong></td>
+                    <td><span class="badge ${claseBadgeMov}">${mov.tipo}</span></td>
+                    <td><strong>${mov.sku}</strong></td>
+                    <td>${mov.nombreProducto || '-'}</td>
+                    <td>${mov.cantidad}</td>
+                    <td>${mov.proveedor || '-'}</td>
+                    <td>${mov.factura || mov.detalle || '-'}</td>
+                `;
+                tabla.appendChild(fila);
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', cargarTablaMovimientos);
+    </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Ferre - Alertas de Stock</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="icon" type="image/png" href="img/logo-stockferre.png">
+</head>
+<body>
+
+    <div class="dashboard-layout">
+        
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="img/logo-stockferre.png" alt="Stock Ferre Logo">
+            </div>
+            <nav>
+                <a href="panel.html">📦 Inventario</a>
+                <a href="entradas-stock.html">📥 Entradas de Stock</a>
+                <a href="alertas.html" class="active">⚠️ Alertas de Stock</a>
+                <a href="ordenes-compra.html">📋 Órdenes de Compra</a>
+                <a href="inicio.html" class="logout">Cerrar Sesión</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Panel de Alertas y Quiebres de Stock</h1>
+                <span class="user-role admin-role-text">Rol: Administrador</span>
+            </header>
+
+            <section class="table-container form-section-margin">
+                <div class="table-header">
+                    <h2>Productos en Nivel Crítico y Solicitudes de Reposición</h2>
+                    <span class="alerta-header-label">● Gestión de Abastecimiento</span>
+                </div>
+                
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>SKU / Código</th>
+                                <th>Nombre del Producto</th>
+                                <th>Categoría</th>
+                                <th>Stock Actual</th>
+                                <th>Stock Mínimo</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaAlertasCuerpo">
+                            <tr data-sku="FER-002">
+                                <td>FER-002</td>
+                                <td>Adhesivo Epóxico Poxipol 10min</td>
+                                <td>Adhesivos</td>
+                                <td><span class="badge warning texto-critico-rojo">4 u.</span></td>
+                                <td>10 u.</td>
+                                <td><button class="btn-primary btn-alerta-accion" onclick="abrirModalOC('FER-002', 'Adhesivo Epóxico Poxipol 10min')">Solicitar Compra</button></td>
+                            </tr>
+                            <tr data-sku="FER-015">
+                                <td>FER-015</td>
+                                <td>Broca de Tungsteno 1/2" Profesional</td>
+                                <td>Accesorios / Taladros</td>
+                                <td><span class="badge warning texto-critico-rojo">2 u.</span></td>
+                                <td>8 u.</td>
+                                <td><button class="btn-primary btn-alerta-accion" onclick="abrirModalOC('FER-015', 'Broca de Tungsteno 1/2\'\' Profesional')">Solicitar Compra</button></td>
+                            </tr>
+                            <tr data-sku="FER-042">
+                                <td>FER-042</td>
+                                <td>Cinta de Aislar 3M Profesional Negra</td>
+                                <td>Electricidad</td>
+                                <td><span class="badge warning texto-critico-rojo">5 u.</span></td>
+                                <td>15 u.</td>
+                                <td><button class="btn-primary btn-alerta-accion" onclick="abrirModalOC('FER-042', 'Cinta de Aislar 3M Profesional Negra')">Solicitar Compra</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="modalSolicitudOC" class="modal">
+        <div class="modal-content modal-content-oc">
+            <span class="close" onclick="cerrarModalOC()">&times;</span>
+            <h2 class="modal-titulo-oc">Generar Orden de Compra</h2>
+            <form id="formGenerarOC" class="form-generar-oc">
+                <div class="form-group">
+                    <label class="form-label-small">Producto Seleccionado:</label>
+                    <input type="text" id="ocProductoInfo" readonly class="input-readonly-oc">
+                </div>
+                <div class="form-group">
+                    <label for="ocCantidad" class="form-label-small">Cantidad a Comprar:</label>
+                    <input type="number" id="ocCantidad" required min="1" value="20" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="ocProveedor" class="form-label-small">Proveedor Asignado:</label>
+                    <select id="ocProveedor" class="form-input">
+                        <option value="Distribuidora Ferretera Central SpA">Distribuidora Ferretera Central SpA</option>
+                        <option value="Comercial e Importadora ToolMax">Comercial e Importadora ToolMax</option>
+                        <option value="Suministros Industriales del Sur">Suministros Industriales del Sur</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary btn-emitir-oc">📋 Emitir Orden de Compra</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function ocultarSkusSolicitados() {
+            const solicitados = new Set(JSON.parse(localStorage.getItem('skusSolicitadosOC')) || []);
+            const filas = document.querySelectorAll('#tablaAlertasCuerpo tr');
+            filas.forEach(fila => {
+                const skuFila = (fila.getAttribute('data-sku') || fila.cells[0]?.textContent || '').trim().toUpperCase();
+                if (solicitados.has(skuFila)) {
+                    fila.remove();
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            let solicitudesVendedor = JSON.parse(localStorage.getItem('solicitudesReposicionAdmin')) || [];
+            const tablaAlertasCuerpo = document.getElementById('tablaAlertasCuerpo');
+
+            solicitudesVendedor.forEach(sol => {
+                const nuevaFila = document.createElement('tr');
+                nuevaFila.setAttribute('data-sku', sol.sku);
+                nuevaFila.innerHTML = `
+                    <td>${sol.sku} <span class="badge badge-vendedor-etiqueta">Por Vendedor</span></td>
+                    <td>${sol.nombreProducto}</td>
+                    <td>${sol.categoria}</td>
+                    <td><span class="badge warning texto-critico-rojo">${sol.stockActual}</span></td>
+                    <td>${sol.stockMinimo}</td>
+                    <td><button class="btn-primary btn-alerta-accion-verde" onclick="abrirModalOC('${sol.sku}', '${sol.nombreProducto}')">Generar OC (${sol.cantidadSugerida}u)</button></td>
+                `;
+                tablaAlertasCuerpo.prepend(nuevaFila);
+            });
+
+            ocultarSkusSolicitados();
+        });
+
+        let skuSeleccionadoAlerta = "";
+        let nombreSeleccionadoAlerta = "";
+
+        function abrirModalOC(sku, nombre) {
+            skuSeleccionadoAlerta = sku;
+            nombreSeleccionadoAlerta = nombre;
+            document.getElementById('ocProductoInfo').value = `${sku} - ${nombre}`;
+            document.getElementById('modalSolicitudOC').style.display = 'flex';
+        }
+
+        function cerrarModalOC() {
+            document.getElementById('modalSolicitudOC').style.display = 'none';
+        }
+
+        const formGenerarOC = document.getElementById('formGenerarOC');
+        if (formGenerarOC) {
+            formGenerarOC.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const cantidad = parseInt(document.getElementById('ocCantidad').value, 10);
+                const proveedor = document.getElementById('ocProveedor').value;
+                const numeroOC = "OC-" + Math.floor(1000 + Math.random() * 9000);
+
+                const nuevaOC = {
+                    numeroOC: numeroOC,
+                    fecha: new Date().toLocaleDateString(),
+                    sku: skuSeleccionadoAlerta,
+                    nombreProducto: nombreSeleccionadoAlerta,
+                    cantidad: cantidad,
+                    proveedor: proveedor,
+                    estado: "Pendiente de Envío"
+                };
+
+                try {
+                    await fetch('/api/ordenes-compra', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(nuevaOC)
+                    });
+                } catch (error) {
+                    console.error("Error al guardar OC en servidor:", error);
+                }
+
+                let listaOC = JSON.parse(localStorage.getItem('ordenesCompraStock')) || [];
+                listaOC.push(nuevaOC);
+                localStorage.setItem('ordenesCompraStock', JSON.stringify(listaOC));
+
+                let solicitados = JSON.parse(localStorage.getItem('skusSolicitadosOC')) || [];
+                if (!solicitados.includes(skuSeleccionadoAlerta.toUpperCase())) {
+                    solicitados.push(skuSeleccionadoAlerta.toUpperCase());
+                    localStorage.setItem('skusSolicitadosOC', JSON.stringify(solicitados));
+                }
+
+                alert(`¡Orden de Compra ${numeroOC} generada con éxito!\nEl producto se retiró del listado de alertas y se envió a Órdenes de Compra.`);
+                cerrarModalOC();
+                
+                window.location.href = "ordenes-compra.html";
+            });
+        }
+    </script>
+</body>
+</html>

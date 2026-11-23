@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Ferre - Historial de Documentos</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="icon" type="image/png" href="img/logo-stockferre.png">
+</head>
+<body>
+
+    <div class="dashboard-layout">
+        
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="img/logo-stockferre.png" alt="Stock Ferre Logo">
+            </div>
+            <nav>
+                <a href="panel-vendedor.html">🛒 Mesón de Ventas</a>
+                <a href="documentos.html" class="active">📄 Boletas y Facturas</a>
+                <a href="inicio.html" class="logout">Cerrar Sesión</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Historial de Documentos Tributarios</h1>
+                <span class="user-role vendedor-role-text">Rol: Vendedor (Operador)</span>
+            </header>
+
+            <section class="table-container form-section-margin">
+                <div class="table-header">
+                    <h2>Boletas y Facturas Registradas</h2>
+                    <input type="text" id="buscadorDocumentos" placeholder="🔍 Buscar por N° o empresa..." class="search-input-vendedor">
+                </div>
+                
+                <div class="table-responsive">
+                    <table id="tablaDocumentos">
+                        <thead>
+                            <tr>
+                                <th>Tipo de Documento</th>
+                                <th>N° de Folio</th>
+                                <th>Fecha / Hora</th>
+                                <th>Cliente / Destinatario</th>
+                                <th>Monto Total ($)</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoTablaDocumentos">
+                            <tr>
+                                <td><span class="badge badge-factura-doc">Factura Electrónica</span></td>
+                                <td>FAC-00128</td>
+                                <td>15/10/2026 - 12:45</td>
+                                <td>Constructora del Maipo Ltda. (76.123.456-7)</td>
+                                <td>$45.890</td>
+                                <td>
+                                    <button class="btn-pdf-doc" onclick="verDetalleDoc('FAC-00128')">Ver PDF</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-boleta-doc">Boleta Electrónica</span></td>
+                                <td>BOL-00452</td>
+                                <td>15/10/2026 - 11:20</td>
+                                <td>Público General</td>
+                                <td>$9.180</td>
+                                <td>
+                                    <button class="btn-pdf-doc" onclick="verDetalleDoc('BOL-00452')">Ver PDF</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function formatearCLP(valor) {
+            const num = Number(valor) || 0;
+            return '$' + num.toLocaleString('es-CL');
+        }
+
+        function renderizarDocumentos() {
+            const cuerpo = document.getElementById('cuerpoTablaDocumentos');
+            const documentosGuardados = JSON.parse(localStorage.getItem('documentosEmitidos')) || [];
+
+            documentosGuardados.slice().reverse().forEach(doc => {
+                const esFactura = doc.tipo === 'Factura';
+                const badgeClase = esFactura ? 'badge-factura-doc' : 'badge-boleta-doc';
+                const tipoTexto = esFactura ? 'Factura Electrónica' : 'Boleta Electrónica';
+                const folioEscapado = String(doc.folio || '').replace(/'/g, "\\'");
+
+                const fila = document.createElement('tr');
+                fila.innerHTML = `
+                    <td><span class="badge ${badgeClase}">${tipoTexto}</span></td>
+                    <td><strong>${doc.folio}</strong></td>
+                    <td>${doc.fecha}</td>
+                    <td>${doc.destinatario}</td>
+                    <td>${formatearCLP(doc.montoTotal)}</td>
+                    <td>
+                        <button class="btn-pdf-doc" onclick="verDetalleDoc('${folioEscapado}')">Ver PDF</button>
+                    </td>
+                `;
+                cuerpo.prepend(fila);
+            });
+        }
+
+        function cargarDocumentosEnVivo() {
+            const cuerpo = document.getElementById('cuerpoTablaDocumentos');
+            cuerpo.innerHTML = `
+                <tr>
+                    <td><span class="badge badge-factura-doc">Factura Electrónica</span></td>
+                    <td>FAC-00128</td>
+                    <td>15/10/2026 - 12:45</td>
+                    <td>Constructora del Maipo Ltda. (76.123.456-7)</td>
+                    <td>$45.890</td>
+                    <td>
+                        <button class="btn-pdf-doc" onclick="verDetalleDoc('FAC-00128')">Ver PDF</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-boleta-doc">Boleta Electrónica</span></td>
+                    <td>BOL-00452</td>
+                    <td>15/10/2026 - 11:20</td>
+                    <td>Público General</td>
+                    <td>$9.180</td>
+                    <td>
+                        <button class="btn-pdf-doc" onclick="verDetalleDoc('BOL-00452')">Ver PDF</button>
+                    </td>
+                </tr>
+            `;
+
+            const documentosGuardados = JSON.parse(localStorage.getItem('documentosEmitidos')) || [];
+            documentosGuardados.slice().reverse().forEach(doc => {
+                const esFactura = doc.tipo === 'Factura';
+                const badgeClase = esFactura ? 'badge-factura-doc' : 'badge-boleta-doc';
+                const tipoTexto = esFactura ? 'Factura Electrónica' : 'Boleta Electrónica';
+                const folioEscapado = String(doc.folio || '').replace(/'/g, "\\'");
+
+                const fila = document.createElement('tr');
+                fila.innerHTML = `
+                    <td><span class="badge ${badgeClase}">${tipoTexto}</span></td>
+                    <td><strong>${doc.folio}</strong></td>
+                    <td>${doc.fecha}</td>
+                    <td>${doc.destinatario}</td>
+                    <td>${formatearCLP(doc.montoTotal)}</td>
+                    <td>
+                        <button class="btn-pdf-doc" onclick="verDetalleDoc('${folioEscapado}')">Ver PDF</button>
+                    </td>
+                `;
+                cuerpo.appendChild(fila);
+            });
+
+            aplicarFiltroDocumentos();
+        }
+
+        function verDetalleDoc(folio) {
+            const documentosGuardados = JSON.parse(localStorage.getItem('documentosEmitidos')) || [];
+            const encontrado = documentosGuardados.find(d => d.folio === folio);
+
+            if (encontrado) {
+                alert(
+                    `Comprobante: ${encontrado.folio}\n` +
+                    `Tipo: ${encontrado.tipo}\n` +
+                    `Fecha: ${encontrado.fecha}\n` +
+                    `Cliente: ${encontrado.destinatario}\n` +
+                    `Detalle: ${encontrado.sku} (x${encontrado.cantidad})\n` +
+                    `Total: ${formatearCLP(encontrado.montoTotal)}`
+                );
+            } else {
+                alert(`Abriendo vista previa e impresión para el documento: ${folio}\n(Aquí se genera el comprobante con la marca de agua corporativa).`);
+            }
+            window.print();
+        }
+
+        const buscadorDocumentos = document.getElementById('buscadorDocumentos');
+
+        function aplicarFiltroDocumentos() {
+            const filtro = buscadorDocumentos.value.toLowerCase();
+            const filas = document.querySelectorAll('#tablaDocumentos tbody tr');
+
+            filas.forEach(fila => {
+                const textoFila = fila.textContent.toLowerCase();
+                if (textoFila.includes(filtro)) {
+                    fila.style.display = '';
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+        }
+
+        buscadorDocumentos.addEventListener('input', aplicarFiltroDocumentos);
+        window.addEventListener('DOMContentLoaded', cargarDocumentosEnVivo);
+        window.addEventListener('focus', cargarDocumentosEnVivo);
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'documentosEmitidos') {
+                cargarDocumentosEnVivo();
+            }
+        });
+    </script>
+</body>
+</html>
